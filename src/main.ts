@@ -1,0 +1,39 @@
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import dotenv from 'dotenv'
+import logger from './utils/logger.ts'
+import { prettyJSON } from 'hono/pretty-json'
+
+import healthRoutes from './handlers/health.ts'
+import userRoutes from './handlers/user.ts'
+
+dotenv.config()
+
+const app = new Hono()
+
+// Middleware for logging requests
+// app.use('*', async (c, next) => {
+//   const start = Date.now()
+//   await next()
+//   const ms = Date.now() - start
+//   logger.info({
+//     method: c.req.method,
+//     path: c.req.path,
+//     status: c.res.status,
+//     duration: `${ms}ms`
+//   })
+// })
+
+// Pretty JSON middleware for development
+app.use('*', prettyJSON())
+
+app.route('/api/health', healthRoutes)
+app.route('/api/user', userRoutes)
+
+const port = parseInt(process.env.PORT || '3000')
+logger.info(`Server is running on http://localhost:${port}`)
+
+serve({
+  fetch: app.fetch,
+  port
+})
