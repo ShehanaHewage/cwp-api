@@ -46,11 +46,38 @@ export async function getUserById(userId: string): Promise<User | null> {
   return snakeToCamelCase(users[0]);
 }
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
-  // Replace this with your DB logic
-  const user = await getUserById(userId);
-  if (!user) return null;
+  try {
 
-  const updatedUser = { ...user, ...updates };
-  // Save `updatedUser` back to your DB here
-  return updatedUser;
+    const { email, firstName, lastName, passwordHash } = updates;
+
+    const safeUpdates: Partial<User> = {
+      email: email ?? null, // If email is undefined, set it to null
+      firstName: firstName ?? null, // If firstName is undefined, set it to null
+      lastName: lastName ?? null, // If lastName is undefined, set it to null
+      passwordHash: passwordHash ?? null, // If passwordHash is undefined, set it to null
+    };
+
+    // SQL query to update user
+    const updatedUser = await sql<User[]>`
+      UPDATE users
+      SET
+        email = COALESCE(${safeUpdates.email}, email),
+        first_name = COALESCE(${safeUpdates.firstName}, first_name),
+        last_name = COALESCE(${safeUpdates.lastName}, last_name),
+        password_hash = COALESCE(${safeUpdates.passwordHash}, password_hash)
+      WHERE user_id = ${userId}
+        RETURNING *;
+    `;
+
+    // If no user was found, return null
+    if (updatedUser.length === 0) {
+      return null;
+    }
+
+    // Return the updated user data (converted to camelCase)
+    return snakeToCamelCase(updatedUser[0]);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return null;
+  }
 }
