@@ -19,7 +19,8 @@ import { generateJwtToken } from "../utils/jwtUtils.ts";
 import { StatusCodes } from "http-status-codes";
 import logger from "../utils/logger.ts";
 import { authMiddleware } from "../middleware/auth.ts";
-
+import { userUpdateSchema } from "../models/dtos/user.ts";
+import { updateUser } from "../repo/userRepo.ts";
 const userRoutes = new Hono();
 
 userRoutes.post("/register", zValidator("json", userFormSchema), async (c) => {
@@ -98,19 +99,45 @@ userRoutes.post("/login", zValidator("json", loginFormSchema), async (c) => {
 });
 
 // Profile endpoint - requires authentication
-userRoutes.get("/profile", async (c) => {
-  const userId = c.req.json();
-
-  logger.debug({ userId }, "Fetching user profile");
+userRoutes.get("/:userId", authMiddleware, async (c) => {
+  const userId = c.req.param("userId");
 
   const user = await getUserById(userId);
+
   if (!user) {
-    logger.warn({ userId }, "Profile fetch failed - user not found");
-    return c.json({ error: "User not found" }, StatusCodes.NOT_FOUND);
+    logger.warn({ userId }, "User profile not found");
+    return c.json({ message: "User not found" }, StatusCodes.NOT_FOUND);
   }
 
-  logger.info({ userId }, "User profile fetched successfully");
-  return c.json(convertUserToUserDto(user));
+  logger.info({ userId }, "User profile fetched");
+  return c.json(convertUserToUserDto(user), StatusCodes.OK);
 });
+
+
+userRoutes.put(
+    "/:userId",
+    authMiddleware, // Ensure token is validated before proceeding
+    zValidator("json", userUpdateSchema),
+    async (c) => {
+      const userIdParam = c.req.param("userId");  // Get userId from URL params
+      const updates = c.req.valid("json");  // Get the updates from request body
+
+
+      // Handle updates (password hash, etc.)
+      const updatePayload: Partial<User> = { ...updates };
+      if (updates.password) {
+        updatePayload.passwordHash = await hashPassword(updates.password);
+        delete updatePayload.password;
+      }
+
+      const updatedUser = await updateUser(userIdParam, updatePayload);
+
+      if (!updatedUser) {
+        return c.json({ error: "User not found" }, StatusCodes.NOT_FOUND);
+      }
+
+      return c.json(convertUserToUserDto(updatedUser), StatusCodes.OK);
+    }
+);
 
 export default userRoutes;

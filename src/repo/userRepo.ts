@@ -45,3 +45,12 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
   return snakeToCamelCase(users[0]);
 }
+export async function updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
+  // Replace this with your DB logic
+  const user = await getUserById(userId);
+  if (!user) return null;
+
+  const updatedUser = { ...user, ...updates };
+  // Save `updatedUser` back to your DB here
+  return updatedUser;
+}

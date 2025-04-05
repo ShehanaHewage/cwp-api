@@ -49,3 +49,9 @@ export function convertUserToUserDto(user: User): UserDto {
 export const getUserSchema = z.object({
     userId: z.string(),
 })
+export const userUpdateSchema = z.object({
+    email: z.string().email().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    password: z.string().min(6).optional(),
+});
