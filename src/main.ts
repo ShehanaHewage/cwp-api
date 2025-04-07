@@ -8,7 +8,7 @@ import healthRoutes from './handlers/health.ts'
 import userRoutes from './handlers/user.ts'
 import uploadRoute from './handlers/upload.ts'
 import fileRoutes from './handlers/fileHandler.ts'
-
+import postRoutes from './handlers/posts.ts';
 dotenv.config()
 
 const app = new Hono()
@@ -33,6 +33,8 @@ app.route('/api/health', healthRoutes)
 app.route('/api/user', userRoutes)
 app.route("/api", uploadRoute)
 app.route('/api', fileRoutes)
+app.route('/api/posts', postRoutes)
+
 const port = parseInt(process.env.PORT || '3000')
 logger.info(`Server is running on http://localhost:${port}`)
 
